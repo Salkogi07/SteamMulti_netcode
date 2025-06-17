@@ -3,13 +3,14 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Steamworks; // Facepunch.Steamworks
+using TMPro;
 
 public class LobbyEntryData : MonoBehaviour
 {
     // CSteamID 대신 SteamId 사용
     public SteamId lobbySteamID;
     public string lobbyName;
-    public Text lobbyNameText;
+    public TextMeshProUGUI lobbyNameText;
     public Button joinLobbyButton;
 
     private void Start()

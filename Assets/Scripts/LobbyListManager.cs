@@ -3,7 +3,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Steamworks.Data; // Lobby 사용을 위해 추가
-using System.Linq;
+using UnityEngine.UI;
 
 public class LobbyListManager : MonoBehaviour
 {
@@ -13,12 +13,20 @@ public class LobbyListManager : MonoBehaviour
     [SerializeField] private GameObject lobbyListMenu;
     [SerializeField] private GameObject lobbyEntryPrefab;
     [SerializeField] private GameObject scrollViewContent;
-
-    public List<GameObject> listOfLobbies = new List<GameObject>();
+    
+    private List<GameObject> listOfLobbies = new List<GameObject>();
+    
+    [Header("Button Click Events")]
+    [SerializeField] private Button backButton;
 
     private void Awake()
     {
         if (instance == null) { instance = this; }
+    }
+
+    private void Start()
+    {
+        backButton.onClick.AddListener(OnClick_Back);
     }
 
     public void OnClick_GetFriendLobbies()

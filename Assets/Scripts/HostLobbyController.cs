@@ -3,13 +3,16 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Steamworks; // Facepunch.Steamworks
+using TMPro;
 
 public class HostLobbyController : MonoBehaviour
 {
     [SerializeField] private GameObject hostLobbyPanel;
-    [SerializeField] private InputField lobbyNameInput;
-    [SerializeField] private Toggle friendsOnlyToggle;
     [SerializeField] private GameObject mainMenuButtonsPanel;
+    [SerializeField] private TMP_InputField lobbyNameInput;
+    [SerializeField] private Toggle friendsOnlyToggle;
+    
+    [Header("Button Click Events")]
     [SerializeField] private Button createLobbyButton;
     [SerializeField] private Button backButton;
     

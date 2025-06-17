@@ -5,17 +5,18 @@ using UnityEngine;
 using Steamworks;
 using UnityEngine.UI;
 using System.Linq;
+using TMPro;
 
 public class LobbyController : MonoBehaviour
 {
     public static LobbyController Instance;
 
     [Header("UI Elements")]
-    public Text LobbyNameText;
+    public TextMeshProUGUI LobbyNameText;
     public Button StartGameButton;
     public Button ReadyButton;
     public Button LeaveButton;
-    public Text ReadyButtonText;
+    public TextMeshProUGUI ReadyButtonText;
 
     [Header("Player List")]
     public GameObject PlayerListViewContent;
@@ -38,7 +39,25 @@ public class LobbyController : MonoBehaviour
 
     public void OnClick_LeaveLobby()
     {
-        SteamManager.Instance.LeaveLobby();
+        // [수정] SteamManager와 CurrentLobby가 유효한지 확인
+        if (SteamManager.Instance != null && SteamManager.Instance.CurrentLobby.HasValue)
+        {
+            var lobby = SteamManager.Instance.CurrentLobby.Value;
+            bool isOwner = lobby.Owner.Id == SteamClient.SteamId;
+
+            if (isOwner)
+            {
+                // [수정] 내가 방장이라면, 로비를 파괴하는 함수를 호출합니다.
+                Debug.Log("방장이 로비 파괴를 시도합니다.");
+                SteamManager.Instance.DestroyLobby();
+            }
+            else
+            {
+                // [수정] 일반 멤버라면, 그냥 로비를 나갑니다.
+                Debug.Log("일반 멤버가 로비를 나갑니다.");
+                SteamManager.Instance.LeaveLobby();
+            }
+        }
     }
 
     public void OnClick_ReadyPlayer()
@@ -55,7 +74,7 @@ public class LobbyController : MonoBehaviour
     
     private void UpdateButtonText()
     {
-        ReadyButtonText.text = isReady ? "준비 완료" : "준비";
+        ReadyButtonText.text = isReady ? "Ready" : "Unready";
     }
 
     // 모든 플레이어가 준비되었는지 확인하고 시작 버튼 상태를 업데이트

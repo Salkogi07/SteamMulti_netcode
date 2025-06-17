@@ -3,7 +3,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Steamworks;
-using System.Threading.Tasks; // 비동기 작업을 위해 추가
+using System.Threading.Tasks;
+using TMPro; // 비동기 작업을 위해 추가
 
 public class PlayerListItem : MonoBehaviour
 {
@@ -13,8 +14,8 @@ public class PlayerListItem : MonoBehaviour
     public bool IsLobbyOwner;
 
     [Header("UI Elements")]
-    [SerializeField] private Text playerNameText;
-    [SerializeField] private Text playerStatusText; // "준비", "방장" 등 상태 표시
+    [SerializeField] private TextMeshProUGUI playerNameText;
+    [SerializeField] private TextMeshProUGUI playerStatusText;
     [SerializeField] private Image playerOwnerImage;
     [SerializeField] private RawImage playerAvatarImage; // Steam 아바타를 표시할 RawImage
 
@@ -29,7 +30,7 @@ public class PlayerListItem : MonoBehaviour
         else
             playerOwnerImage.enabled = false;
 
-        playerStatusText.text = Ready ? "준비 완료" : "대기 중";
+        playerStatusText.text = Ready ? "Ready" : "Unready";
         playerStatusText.color = Ready ? Color.green : Color.white;
         
         // 아바타가 아직 로드되지 않았다면 로드를 시작합니다.
