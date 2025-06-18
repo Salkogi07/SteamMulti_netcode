@@ -350,6 +350,7 @@ MonoBehaviour:
   MessageInputField: {fileID: 25008043}
   MessageTemplate: {fileID: 1680773119}
   MessageContainer: {fileID: 1529811955}
+  chatScrollRect: {fileID: 1489719344}
 --- !u!1 &222793475
 GameObject:
   m_ObjectHideFlags: 0
@@ -2291,7 +2292,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Content: {fileID: 1529811956}
-  m_Horizontal: 1
+  m_Horizontal: 0
   m_Vertical: 1
   m_MovementType: 2
   m_Elasticity: 0.1
