@@ -40,7 +40,6 @@ public class SteamManager : MonoBehaviour
         SteamMatchmaking.OnLobbyMemberJoined += OnLobbyMemberJoined;
         SteamMatchmaking.OnLobbyMemberLeave += OnLobbyMemberLeave;
         SteamMatchmaking.OnLobbyDataChanged += OnLobbyDataChanged;
-        SteamFriends.OnGameLobbyJoinRequested += OnGameLobbyJoinRequested;
     }
 
     private void OnDisable()
@@ -51,12 +50,6 @@ public class SteamManager : MonoBehaviour
         SteamMatchmaking.OnLobbyMemberJoined -= OnLobbyMemberJoined;
         SteamMatchmaking.OnLobbyMemberLeave -= OnLobbyMemberLeave;
         SteamMatchmaking.OnLobbyDataChanged -= OnLobbyDataChanged;
-        SteamFriends.OnGameLobbyJoinRequested -= OnGameLobbyJoinRequested;
-    }
-
-    private async void OnGameLobbyJoinRequested(Lobby lobby, SteamId steamId)
-    {
-        await lobby.Join();
     }
 
     // 로비 생성
