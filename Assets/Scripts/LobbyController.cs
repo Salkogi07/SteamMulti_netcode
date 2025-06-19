@@ -37,6 +37,11 @@ public class LobbyController : MonoBehaviour
         LeaveButton.onClick.AddListener(OnClick_LeaveLobby);
     }
 
+    private void Onclick_StartGame()
+    {
+        SteamManager.Instance.StartGameServer();
+    }
+
     public void OnClick_LeaveLobby()
     {
         // [수정] SteamManager와 CurrentLobby가 유효한지 확인

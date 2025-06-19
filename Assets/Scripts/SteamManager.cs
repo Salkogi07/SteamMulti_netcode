@@ -5,7 +5,10 @@ using UnityEngine;
 using Steamworks;
 using Steamworks.Data;
 using System.Linq;
-using System.Threading.Tasks; // Task.Delay를 위해 추가
+using System.Threading.Tasks;
+using Netcode.Transports.Facepunch;
+using Unity.Netcode;
+using UnityEngine.SceneManagement; // Task.Delay를 위해 추가
 
 public enum LobbyType
 {
@@ -17,6 +20,7 @@ public enum LobbyType
 public class SteamManager : MonoBehaviour
 {
     public static SteamManager Instance;
+    [SerializeField] private int maxPlayers = 4;
 
     public Lobby? CurrentLobby { get; private set; }
 
@@ -56,7 +60,7 @@ public class SteamManager : MonoBehaviour
         try
         {
             Debug.Log("로비 생성을 시도합니다...");
-            var createLobbyOutput = await SteamMatchmaking.CreateLobbyAsync(4); 
+            var createLobbyOutput = await SteamMatchmaking.CreateLobbyAsync(maxPlayers); 
 
             if (!createLobbyOutput.HasValue)
             {
@@ -92,6 +96,7 @@ public class SteamManager : MonoBehaviour
             CurrentLobby.Value.SetData("closing", "true");
             CurrentLobby.Value.Leave();
             CurrentLobby = null;
+            NetworkManager.Singleton.Shutdown();
             TransitionToMainMenu();
         }
     }
@@ -102,6 +107,7 @@ public class SteamManager : MonoBehaviour
         {
             CurrentLobby.Value.Leave();
             CurrentLobby = null;
+            NetworkManager.Singleton.Shutdown();
             Debug.Log("로비를 떠났습니다.");
             TransitionToMainMenu();
         }
@@ -180,6 +186,7 @@ public class SteamManager : MonoBehaviour
     {
         if (result == Result.OK)
         {
+            NetworkManager.Singleton.StartHost();
             Debug.Log("OnLobbyCreated 콜백 수신.");
         }
         else
@@ -199,7 +206,8 @@ public class SteamManager : MonoBehaviour
             LobbyController.Instance.UpdatePlayerList();
         }
         
-        SetPlayerData("ready", "false"); 
+        SetPlayerData("ready", "false");
+        
         
         if (SceneTransitionManager.Instance != null)
         {
@@ -210,6 +218,10 @@ public class SteamManager : MonoBehaviour
             Debug.LogError("SceneTransitionManager.Instance가 없습니다! MainMenu 씬에 설정되었는지 확인하세요.");
             UnityEngine.SceneManagement.SceneManager.LoadScene("Lobby");
         }
+        
+        if(NetworkManager.Singleton.IsHost) return;
+        NetworkManager.Singleton.gameObject.GetComponent<FacepunchTransport>().targetSteamId = lobby.Owner.Id;
+        NetworkManager.Singleton.StartClient();
     }
 
     private void OnLobbyMemberJoined(Lobby lobby, Friend friend)
@@ -254,6 +266,12 @@ public class SteamManager : MonoBehaviour
     {
         if (!CurrentLobby.HasValue) return;
         CurrentLobby.Value.SetMemberData(key, value);
+    }
+
+    public void StartGameServer()
+    {
+        if (NetworkManager.Singleton.IsHost)
+            NetworkManager.Singleton.SceneManager.LoadScene("Game", LoadSceneMode.Single);
     }
     
     private void TransitionToMainMenu()
