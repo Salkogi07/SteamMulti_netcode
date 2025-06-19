@@ -32,7 +32,7 @@ public class LobbyController : MonoBehaviour
 
     private void Start()
     {
-        StartGameButton.onClick.AddListener(OnClick_StartGame);
+        StartGameButton.onClick.AddListener(Onclick_StartGame);
         ReadyButton.onClick.AddListener(OnClick_ReadyPlayer);
         LeaveButton.onClick.AddListener(OnClick_LeaveLobby);
     }
@@ -70,11 +70,6 @@ public class LobbyController : MonoBehaviour
         isReady = !isReady;
         SteamManager.Instance.SetPlayerData("ready", isReady.ToString().ToLower());
         UpdateButtonText();
-    }
-    
-    public void OnClick_StartGame()
-    {
-        //SteamManager.Instance.StartGame();
     }
     
     private void UpdateButtonText()
