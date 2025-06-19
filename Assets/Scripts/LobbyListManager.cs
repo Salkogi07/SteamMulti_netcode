@@ -2,26 +2,33 @@
 
 using System.Collections.Generic;
 using UnityEngine;
-using Steamworks.Data; // Lobby 사용을 위해 추가
+using Steamworks.Data;
 using UnityEngine.UI;
 
+/// <summary>
+/// 로비 목록 UI를 관리하는 클래스입니다.
+/// </summary>
 public class LobbyListManager : MonoBehaviour
 {
     public static LobbyListManager instance;
     
+    [Header("UI Panels")]
     [SerializeField] private GameObject mainMenu;
     [SerializeField] private GameObject lobbyListMenu;
+    
+    [Header("UI Elements")]
     [SerializeField] private GameObject lobbyEntryPrefab;
-    [SerializeField] private GameObject scrollViewContent;
+    [SerializeField] private Transform scrollViewContent; // [개선] GameObject 대신 Transform 사용
     
-    private List<GameObject> listOfLobbies = new List<GameObject>();
-    
-    [Header("Button Click Events")]
+    [Header("Buttons")]
     [SerializeField] private Button backButton;
 
+    private List<GameObject> listOfLobbiesUI = new List<GameObject>();
+    
     private void Awake()
     {
         if (instance == null) { instance = this; }
+        else { Destroy(gameObject); }
     }
 
     private void Start()
@@ -31,57 +38,65 @@ public class LobbyListManager : MonoBehaviour
 
     public void OnClick_GetFriendLobbies()
     {
-        mainMenu.SetActive(false);
-        lobbyListMenu.SetActive(true);
+        ShowLobbyListMenu();
         SteamManager.Instance.GetFriendLobbies();
     }
     
     public void OnClick_GetPublicLobbies()
     {
-        mainMenu.SetActive(false);
-        lobbyListMenu.SetActive(true);
+        ShowLobbyListMenu();
         SteamManager.Instance.GetPublicLobbies();
     }
 
     public void OnClick_Back()
     {
-        mainMenu.SetActive(true);
         lobbyListMenu.SetActive(false);
+        mainMenu.SetActive(true);
+        DestroyLobbyListItems();
     }
-    
-    // Facepunch.Steamworks의 Lobby 객체 리스트를 직접 받아서 처리
+
+    /// <summary>
+    /// 로비 목록을 받아와 UI에 표시합니다.
+    /// </summary>
+    /// <param name="lobbies">표시할 로비 목록</param>
     public void DisplayLobbies(List<Lobby> lobbies)
     {
-        DestroyLobbies(); // 목록을 표시하기 전에 기존 목록을 항상 초기화
+        DestroyLobbyListItems();
 
         foreach (var lobby in lobbies)
         {
             string lobbyName = lobby.GetData("name");
 
-            // 로비 이름이 비어있으면 목록에 표시하지 않거나, 기본 이름을 지정합니다.
+            // [개선] 이름이 없는 로비는 목록에 표시하지 않습니다.
             if (string.IsNullOrEmpty(lobbyName))
                 continue;
             
-            // 프리팹에서 UI 항목 생성
-            GameObject createdLobbyItem = Instantiate(lobbyEntryPrefab, scrollViewContent.transform);
+            GameObject createdLobbyItem = Instantiate(lobbyEntryPrefab, scrollViewContent);
             LobbyEntryData lobbyData = createdLobbyItem.GetComponent<LobbyEntryData>();
 
-            // 생성된 UI 항목에 로비 정보 설정
             lobbyData.lobbySteamID = lobby.Id;
-            lobbyData.lobbyName = lobbyName;
-            lobbyData.SetLobbyName();
+            lobbyData.lobbyName = $"{lobbyName} ({lobby.MemberCount}/{lobby.MaxMembers})"; // 인원수 표시
+            lobbyData.SetLobbyData();
 
-            // 관리 리스트에 추가
-            listOfLobbies.Add(createdLobbyItem);
+            listOfLobbiesUI.Add(createdLobbyItem);
         }
     }
 
-    public void DestroyLobbies()
+    /// <summary>
+    /// 현재 표시된 모든 로비 UI 아이템을 파괴합니다.
+    /// </summary>
+    public void DestroyLobbyListItems()
     {
-        foreach (GameObject lobbyItem in listOfLobbies)
+        foreach (GameObject lobbyItem in listOfLobbiesUI)
         {
             Destroy(lobbyItem);
         }
-        listOfLobbies.Clear();
+        listOfLobbiesUI.Clear();
+    }
+    
+    private void ShowLobbyListMenu()
+    {
+        mainMenu.SetActive(false);
+        lobbyListMenu.SetActive(true);
     }
 }

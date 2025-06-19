@@ -6,104 +6,130 @@ using Steamworks.Data;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI; // [추가] ScrollRect를 사용하기 위해 필요
-using System.Collections; // [추가] 코루틴(IEnumerator)을 사용하기 위해 필요
+using UnityEngine.UI;
+using System.Collections;
 
+/// <summary>
+/// 로비 내 채팅 기능을 관리하는 클래스입니다.
+/// </summary>
 public class ChatManager : MonoBehaviour
 {
-    [SerializeField] private TMP_InputField MessageInputField;
-    [SerializeField] private TextMeshProUGUI MessageTemplate;
-    [SerializeField] private GameObject MessageContainer;
-    [SerializeField] private ScrollRect chatScrollRect; // [추가] 채팅 스크롤 뷰의 ScrollRect 컴포넌트
+    [Header("UI Elements")]
+    [SerializeField] private TMP_InputField messageInputField;
+    [SerializeField] private TextMeshProUGUI messageTemplate;
+    [SerializeField] private GameObject messageContainer;
+    [SerializeField] private ScrollRect chatScrollRect;
 
+    #region Unity Lifecycle
+    
     private void Start()
     {
-        MessageTemplate.text = "";
+        // 메시지 템플릿은 복제용으로만 사용하므로 초기화 시 비워둡니다.
+        messageTemplate.text = "";
         
+        // SteamManager가 준비되었고, 로비에 입장한 상태라면 환영 메시지를 표시합니다.
         if (SteamManager.Instance != null && SteamManager.Instance.CurrentLobby.HasValue)
         {
             AddMessageToBox("You entered the lobby!");
         }
     }
 
-    void OnEnable()
+    private void OnEnable()
     {
-        SteamMatchmaking.OnChatMessage += ChatSent;
-        SteamMatchmaking.OnLobbyEntered += LobbyEntered;
-        SteamMatchmaking.OnLobbyMemberJoined += LobbyMemberJoined;
-        SteamMatchmaking.OnLobbyMemberLeave += LobbyMemberLeave;
+        // Steamworks 콜백 이벤트 구독
+        SteamMatchmaking.OnChatMessage += OnChatMessageReceived;
+        SteamMatchmaking.OnLobbyEntered += OnLobbyEntered;
+        SteamMatchmaking.OnLobbyMemberJoined += OnLobbyMemberJoined;
+        SteamMatchmaking.OnLobbyMemberLeave += OnLobbyMemberLeave;
     }
 
-    void OnDisable()
+    private void OnDisable()
     {
-        SteamMatchmaking.OnChatMessage -= ChatSent;
-        SteamMatchmaking.OnLobbyEntered -= LobbyEntered;
-        SteamMatchmaking.OnLobbyMemberJoined -= LobbyMemberJoined;
-        SteamMatchmaking.OnLobbyMemberLeave -= LobbyMemberLeave;
+        // Steamworks 콜백 이벤트 구독 해제
+        SteamMatchmaking.OnChatMessage -= OnChatMessageReceived;
+        SteamMatchmaking.OnLobbyEntered -= OnLobbyEntered;
+        SteamMatchmaking.OnLobbyMemberJoined -= OnLobbyMemberJoined;
+        SteamMatchmaking.OnLobbyMemberLeave -= OnLobbyMemberLeave;
     }
 
-    private void LobbyMemberLeave(Lobby lobby, Friend friend) => AddMessageToBox(friend.Name + " Left the Lobby");
-
-    private void LobbyMemberJoined(Lobby lobby, Friend friend) => AddMessageToBox(friend.Name + " Joined the Lobby");
-
-    private void LobbyEntered(Lobby obj)
+    private void Update()
     {
-        // Start()에서 이미 처리하므로 중복 호출될 수 있습니다.
-    }
-    
-    private void ChatSent(Lobby lobby, Friend friend, string msg)
-    {
-        AddMessageToBox(friend.Name + ": " + msg);
+        // 엔터 키 입력으로 채팅창 활성화/비활성화 및 메시지 전송
+        if (Input.GetKeyDown(KeyCode.Return))
+        {
+            ToggleChatBox();
+        }
     }
 
+    #endregion
+
+    #region Steam Callbacks
+
+    private void OnLobbyMemberLeave(Lobby lobby, Friend friend) => AddMessageToBox($"{friend.Name} left the lobby.");
+    private void OnLobbyMemberJoined(Lobby lobby, Friend friend) => AddMessageToBox($"{friend.Name} joined the lobby.");
+    private void OnLobbyEntered(Lobby lobby)
+    {
+        // Start()에서 이미 입장 메시지를 처리하므로 여기서는 특별한 동작 없음
+    }
+    private void OnChatMessageReceived(Lobby lobby, Friend friend, string msg) => AddMessageToBox($"{friend.Name}: {msg}");
+
+    #endregion
+
+    #region Private Methods
+
+    /// <summary>
+    /// 채팅 UI에 새로운 메시지를 추가합니다.
+    /// </summary>
+    /// <param name="msg">표시할 메시지 문자열</param>
     private void AddMessageToBox(string msg)
     {
-        GameObject message = Instantiate(MessageTemplate.gameObject, MessageContainer.transform);
-        message.GetComponent<TextMeshProUGUI>().text = msg;
+        // 템플릿을 복제하여 새 메시지 오브젝트 생성
+        GameObject messageObject = Instantiate(messageTemplate.gameObject, messageContainer.transform);
+        messageObject.GetComponent<TextMeshProUGUI>().text = msg;
 
-        // [추가] 메시지 추가 후, 스크롤을 맨 아래로 내리는 코루틴을 시작합니다.
+        // 메시지 추가 후 스크롤을 맨 아래로 내림
         StartCoroutine(ScrollToBottomCoroutine());
     }
 
-    // [추가] 스크롤을 맨 아래로 내리는 코루틴
+    /// <summary>
+    /// UI 레이아웃 업데이트 후 스크롤 뷰를 맨 아래로 이동시키는 코루틴입니다.
+    /// </summary>
     private IEnumerator ScrollToBottomCoroutine()
     {
-        // UI 레이아웃이 업데이트될 때까지 현재 프레임의 끝에서 대기합니다.
-        // 이렇게 해야 ScrollRect가 콘텐츠 크기를 제대로 인지한 후 스크롤 위치를 설정할 수 있습니다.
+        // UI 요소가 재배치될 때까지 현재 프레임의 끝에서 대기
         yield return new WaitForEndOfFrame();
 
-        // ScrollRect의 수직 스크롤 위치를 0(가장 아래)으로 설정합니다. (1은 가장 위)
         if (chatScrollRect != null)
         {
             chatScrollRect.verticalNormalizedPosition = 0f;
         }
     }
 
-    private void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.Return))
-        {
-            ToggleChatBox();   
-        }
-    }
-
+    /// <summary>
+    /// 채팅 입력창의 활성 상태를 토글하고 메시지를 전송합니다.
+    /// </summary>
     private void ToggleChatBox()
     {
-        if (MessageInputField.gameObject.activeSelf)
+        if (messageInputField.gameObject.activeSelf)
         {
-            if (!String.IsNullOrEmpty(MessageInputField.text))
+            // 입력창이 활성화된 상태에서 엔터를 누르면 메시지 전송
+            if (!string.IsNullOrWhiteSpace(messageInputField.text))
             {
-                SteamManager.Instance.CurrentLobby?.SendChatString(MessageInputField.text);
-                MessageInputField.text = "";
+                SteamManager.Instance.CurrentLobby?.SendChatString(messageInputField.text);
+                messageInputField.text = "";
             }
             
-            MessageInputField.gameObject.SetActive(false);
+            // 입력창 비활성화 및 포커스 해제
+            messageInputField.gameObject.SetActive(false);
             EventSystem.current.SetSelectedGameObject(null);
         }
         else
         {
-            MessageInputField.gameObject.SetActive(true);
-            EventSystem.current.SetSelectedGameObject(MessageInputField.gameObject);
+            // 입력창이 비활성화된 상태에서 엔터를 누르면 활성화
+            messageInputField.gameObject.SetActive(true);
+            EventSystem.current.SetSelectedGameObject(messageInputField.gameObject);
         }
     }
+
+    #endregion
 }

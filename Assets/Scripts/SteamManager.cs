@@ -1,5 +1,6 @@
 // --- START OF FILE SteamManager.cs ---
 
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Steamworks;
@@ -8,7 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Netcode.Transports.Facepunch;
 using Unity.Netcode;
-using UnityEngine.SceneManagement; // Task.Delay를 위해 추가
+using UnityEngine.SceneManagement;
 
 public enum LobbyType
 {
@@ -17,12 +18,19 @@ public enum LobbyType
     Private
 }
 
+/// <summary>
+/// Steamworks API와의 모든 상호작용을 관리하는 싱글턴 클래스입니다.
+/// </summary>
 public class SteamManager : MonoBehaviour
 {
     public static SteamManager Instance;
+
+    [Header("Settings")]
     [SerializeField] private int maxPlayers = 4;
 
     public Lobby? CurrentLobby { get; private set; }
+
+    #region Unity Lifecycle & Singleton
 
     private void Awake()
     {
@@ -39,6 +47,7 @@ public class SteamManager : MonoBehaviour
 
     private void OnEnable()
     {
+        // Steamworks 콜백 이벤트 구독
         SteamMatchmaking.OnLobbyCreated += OnLobbyCreated;
         SteamMatchmaking.OnLobbyEntered += OnLobbyEntered;
         SteamMatchmaking.OnLobbyMemberJoined += OnLobbyMemberJoined;
@@ -48,87 +57,128 @@ public class SteamManager : MonoBehaviour
 
     private void OnDisable()
     {
+        // Steamworks 콜백 이벤트 구독 해제
         SteamMatchmaking.OnLobbyCreated -= OnLobbyCreated;
         SteamMatchmaking.OnLobbyEntered -= OnLobbyEntered;
         SteamMatchmaking.OnLobbyMemberJoined -= OnLobbyMemberJoined;
         SteamMatchmaking.OnLobbyMemberLeave -= OnLobbyMemberLeave;
         SteamMatchmaking.OnLobbyDataChanged -= OnLobbyDataChanged;
     }
+    
+    #endregion
 
+    #region Lobby Management
+    
+    /// <summary>
+    /// 새로운 스팀 로비를 생성하고 호스트가 됩니다.
+    /// </summary>
     public async void HostLobby(LobbyType lobbyType, string lobbyName)
     {
         try
         {
-            Debug.Log("로비 생성을 시도합니다...");
-            var createLobbyOutput = await SteamMatchmaking.CreateLobbyAsync(maxPlayers); 
+            Debug.Log("Creating lobby...");
+            var createLobbyOutput = await SteamMatchmaking.CreateLobbyAsync(maxPlayers);
 
             if (!createLobbyOutput.HasValue)
             {
-                Debug.LogError("로비 생성에 실패했습니다.");
+                Debug.LogError("Lobby creation failed.");
                 return;
             }
 
             Lobby lobby = createLobbyOutput.Value;
-            lobby.SetData("name", lobbyName); 
+            lobby.SetData("name", lobbyName);
+            
+            lobby.SetData("started", "false"); 
 
-            if (lobbyType == LobbyType.Private)
-                lobby.SetPrivate();
-            else if(lobbyType == LobbyType.FriendsOnly)
-                lobby.SetFriendsOnly();
-            else if(lobbyType == LobbyType.Public)
-                lobby.SetPublic();
+            switch (lobbyType)
+            {
+                case LobbyType.Private:
+                    lobby.SetPrivate();
+                    break;
+                case LobbyType.FriendsOnly:
+                    lobby.SetFriendsOnly();
+                    break;
+                case LobbyType.Public:
+                    lobby.SetPublic();
+                    break;
+            }
             
             lobby.SetJoinable(true);
 
-            Debug.Log($"로비 생성 완료! ID: {lobby.Id}, 이름: {lobbyName}");
+            Debug.Log($"Lobby created! ID: {lobby.Id}, Name: {lobbyName}");
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"로비 생성 중 예외 발생: {e.Message}");
+            Debug.LogError($"An exception occurred while creating lobby: {e.Message}");
         }
     }
 
+    /// <summary>
+    /// 현재 로비를 파괴합니다. 방장만 호출할 수 있습니다.
+    /// </summary>
     public void DestroyLobby()
     {
         if (CurrentLobby.HasValue && CurrentLobby.Value.Owner.Id == SteamClient.SteamId)
         {
-            Debug.Log("로비에 'closing' 신호를 보내고 파괴합니다.");
-            CurrentLobby.Value.SetData("closing", "true");
-            CurrentLobby.Value.Leave();
-            CurrentLobby = null;
-            NetworkManager.Singleton.Shutdown();
-            TransitionToMainMenu();
+            Debug.Log("Host is destroying the lobby.");
+            CurrentLobby.Value.SetData("closing", "true"); 
+            
+            StartCoroutine(LeaveAndShutdown(CurrentLobby.Value));
         }
     }
 
+    private IEnumerator LeaveAndShutdown(Lobby lobby)
+    {
+        yield return new WaitForSeconds(0.2f);
+        lobby.Leave();
+        CurrentLobby = null;
+        if(NetworkManager.Singleton != null && NetworkManager.Singleton.IsHost) NetworkManager.Singleton.Shutdown();
+        TransitionToMainMenu();
+    }
+
+    /// <summary>
+    /// 현재 로비에서 나갑니다.
+    /// </summary>
     public void LeaveLobby()
     {
         if (CurrentLobby.HasValue)
         {
+            Debug.Log("Leaving the lobby.");
             CurrentLobby.Value.Leave();
             CurrentLobby = null;
-            NetworkManager.Singleton.Shutdown();
-            Debug.Log("로비를 떠났습니다.");
+            if(NetworkManager.Singleton != null && NetworkManager.Singleton.IsClient) NetworkManager.Singleton.Shutdown();
             TransitionToMainMenu();
         }
     }
-
+    
+    /// <summary>
+    /// ID를 사용하여 특정 로비에 참가합니다.
+    /// </summary>
     public async void JoinLobby(SteamId lobbyId)
     {
         Lobby? lobby = await SteamMatchmaking.JoinLobbyAsync(lobbyId);
         if (!lobby.HasValue)
         {
-            Debug.LogError($"{lobbyId} ID를 가진 로비에 참가할 수 없습니다.");
+            Debug.LogError($"Failed to join lobby {lobbyId}.");
         }
     }
 
+    #endregion
+
+    #region Lobby Search
+
+    /// <summary>
+    /// 공개 로비 목록을 가져옵니다.
+    /// </summary>
     public async void GetPublicLobbies()
     {
         if (LobbyListManager.instance == null) return;
-
-        LobbyListManager.instance.DestroyLobbies();
+        LobbyListManager.instance.DestroyLobbyListItems();
+        
+        // [수정] WithData -> WithKeyValue 로 변경
         var lobbies = await SteamMatchmaking.LobbyList
             .WithSlotsAvailable(1)
+            .WithKeyValue("started", "false")
             .RequestAsync();
 
         if (lobbies != null)
@@ -137,12 +187,13 @@ public class SteamManager : MonoBehaviour
         }
     }
 
-    // [수정] 친구 로비 목록 가져오기 로직 개선
+    /// <summary>
+    /// 친구가 있는 로비 목록을 가져옵니다.
+    /// </summary>
     public async void GetFriendLobbies()
     {
         if (LobbyListManager.instance == null) return;
-    
-        LobbyListManager.instance.DestroyLobbies();
+        LobbyListManager.instance.DestroyLobbyListItems();
     
         List<Lobby> friendLobbies = new List<Lobby>();
         
@@ -151,95 +202,77 @@ public class SteamManager : MonoBehaviour
 
         if (!friendsInLobbies.Any())
         {
-            Debug.Log("플레이 중인 친구 로비가 없습니다.");
-            LobbyListManager.instance.DisplayLobbies(friendLobbies);
+            LobbyListManager.instance.DisplayLobbies(friendLobbies); 
             return;
         }
     
-        // 각 로비의 정보 갱신을 '요청'합니다.
         foreach (var friend in friendsInLobbies)
         {
             Lobby lobby = friend.GameInfo.Value.Lobby.Value;
-            lobby.Refresh(); // 데이터 갱신 요청
+            lobby.Refresh(); 
             friendLobbies.Add(lobby);
         }
 
-        // [핵심 수정] Steamworks 콜백이 데이터를 수신할 시간을 잠시 기다립니다.
-        // lobby.Refresh()는 비동기 요청이므로, 데이터가 즉시 채워지지 않습니다.
-        // 0.2초의 딜레이는 대부분의 경우 충분합니다.
         await Task.Delay(200);
 
-        // 이제 데이터가 갱신되었을 가능성이 높은 로비 목록을 화면에 표시합니다.
-        if (friendLobbies.Count > 0)
-        {
-            Debug.Log($"{friendLobbies.Count}개의 친구 로비를 찾았습니다. 목록을 표시합니다.");
-            LobbyListManager.instance.DisplayLobbies(friendLobbies);
-        }
-        else
-        {
-            Debug.Log("플레이 중인 친구 로비가 없습니다.");
-            LobbyListManager.instance.DisplayLobbies(friendLobbies);
-        }
+        var joinableFriendLobbies = friendLobbies.Where(l => l.GetData("started") != "true").ToList();
+
+        LobbyListManager.instance.DisplayLobbies(joinableFriendLobbies);
     }
+
+    #endregion
+    
+    #region Steam Callbacks
 
     private void OnLobbyCreated(Result result, Lobby lobby)
     {
         if (result == Result.OK)
         {
+            Debug.Log("OnLobbyCreated callback received. Starting host.");
             NetworkManager.Singleton.StartHost();
-            Debug.Log("OnLobbyCreated 콜백 수신.");
         }
         else
         {
-            Debug.LogError($"로비 생성 실패: {result}");
+            Debug.LogError($"Lobby creation failed with result: {result}");
         }
     }
 
     private void OnLobbyEntered(Lobby lobby)
     {
         CurrentLobby = lobby;
-        Debug.Log($"로비 입장: {lobby.Id}");
-
-        if (LobbyController.Instance != null)
-        {
-            LobbyController.Instance.UpdateLobbyName();
-            LobbyController.Instance.UpdatePlayerList();
-        }
+        Debug.Log($"Entered lobby: {lobby.Id}");
         
         SetPlayerData("ready", "false");
         
+        SceneTransitionManager.Instance?.TransitionToScene("Lobby");
         
-        if (SceneTransitionManager.Instance != null)
+        if(!NetworkManager.Singleton.IsHost)
         {
-            SceneTransitionManager.Instance.TransitionToScene("Lobby");
+            NetworkManager.Singleton.gameObject.GetComponent<FacepunchTransport>().targetSteamId = lobby.Owner.Id;
+            NetworkManager.Singleton.StartClient();
         }
-        else
-        {
-            Debug.LogError("SceneTransitionManager.Instance가 없습니다! MainMenu 씬에 설정되었는지 확인하세요.");
-            UnityEngine.SceneManagement.SceneManager.LoadScene("Lobby");
-        }
-        
-        if(NetworkManager.Singleton.IsHost) return;
-        NetworkManager.Singleton.gameObject.GetComponent<FacepunchTransport>().targetSteamId = lobby.Owner.Id;
-        NetworkManager.Singleton.StartClient();
     }
 
     private void OnLobbyMemberJoined(Lobby lobby, Friend friend)
     {
-        Debug.Log($"{friend.Name} 님이 로비에 참가했습니다.");
-        if (LobbyController.Instance != null)
-        {
-            LobbyController.Instance.UpdatePlayerList();
-        }
+        Debug.Log($"{friend.Name} joined the lobby.");
+        LobbyController.Instance?.UpdatePlayerList();
     }
 
     private void OnLobbyMemberLeave(Lobby lobby, Friend friend)
     {
-        Debug.Log($"{friend.Name} 님이 로비를 떠났습니다.");
+        Debug.Log($"{friend.Name} left the lobby.");
         
-        if (lobby.GetData("closing") != "true" && LobbyController.Instance != null)
+        if (friend.Id == lobby.Owner.Id && lobby.GetData("closing") != "true")
         {
-            LobbyController.Instance.UpdatePlayerList();
+            Debug.Log("Host has left unexpectedly. Leaving lobby.");
+            LeaveLobby();
+            return;
+        }
+
+        if (lobby.GetData("closing") != "true")
+        {
+            LobbyController.Instance?.UpdatePlayerList();
         }
     }
 
@@ -247,12 +280,13 @@ public class SteamManager : MonoBehaviour
     {
         if (lobby.GetData("closing") == "true")
         {
-            if (CurrentLobby.HasValue)
+            bool isOwner = CurrentLobby.HasValue && CurrentLobby.Value.Owner.Id == SteamClient.SteamId;
+            if (CurrentLobby.HasValue && !isOwner)
             {
-                Debug.Log("방장이 로비를 닫았습니다. 로비에서 나갑니다.");
+                Debug.Log("Host has closed the lobby. Leaving.");
                 LeaveLobby(); 
-                return;
             }
+            return;
         }
         
         if (LobbyController.Instance != null && CurrentLobby.HasValue && CurrentLobby.Value.Id == lobby.Id)
@@ -262,28 +296,33 @@ public class SteamManager : MonoBehaviour
         }
     }
     
+    #endregion
+    
+    #region Public Helpers
+    
     public void SetPlayerData(string key, string value)
     {
-        if (!CurrentLobby.HasValue) return;
-        CurrentLobby.Value.SetMemberData(key, value);
+        CurrentLobby?.SetMemberData(key, value);
     }
 
     public void StartGameServer()
     {
         if (NetworkManager.Singleton.IsHost)
+        {
+            if(CurrentLobby.HasValue)
+            {
+                CurrentLobby.Value.SetJoinable(false);
+                CurrentLobby.Value.SetData("started", "true");
+                Debug.Log("Lobby is now locked and game is starting.");
+            }
             NetworkManager.Singleton.SceneManager.LoadScene("Game", LoadSceneMode.Single);
+        }
     }
     
     private void TransitionToMainMenu()
     {
-        if (SceneTransitionManager.Instance != null)
-        {
-            SceneTransitionManager.Instance.TransitionToScene("MainMenu");
-        }
-        else
-        {
-            Debug.LogError("SceneTransitionManager.Instance가 없습니다! MainMenu 씬에 설정되었는지 확인하세요.");
-            UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
-        }
+        SceneTransitionManager.Instance?.TransitionToScene("MainMenu");
     }
+
+    #endregion
 }

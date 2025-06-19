@@ -347,9 +347,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 20771286785d21143b233b0159884795, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  MessageInputField: {fileID: 25008043}
-  MessageTemplate: {fileID: 1680773119}
-  MessageContainer: {fileID: 1529811955}
+  messageInputField: {fileID: 25008043}
+  messageTemplate: {fileID: 1680773119}
+  messageContainer: {fileID: 1529811955}
   chatScrollRect: {fileID: 1489719344}
 --- !u!1 &222793475
 GameObject:
@@ -1050,13 +1050,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a6e7c31e3fa4da4bbe9ad8d8b48c89b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  LobbyNameText: {fileID: 1179481740}
-  StartGameButton: {fileID: 1533837086}
-  ReadyButton: {fileID: 296733260}
-  LeaveButton: {fileID: 423120435}
-  ReadyButtonText: {fileID: 1247647114}
-  PlayerListViewContent: {fileID: 515514725}
-  PlayerListItemPrefab: {fileID: 9204626771907074494, guid: 66124e9b75320b64c823ac3664bf1c1d, type: 3}
+  lobbyNameText: {fileID: 1179481740}
+  startGameButton: {fileID: 1533837086}
+  readyButton: {fileID: 296733260}
+  leaveButton: {fileID: 423120435}
+  readyButtonText: {fileID: 1247647114}
+  playerListViewContent: {fileID: 515514725}
+  playerListItemPrefab: {fileID: 9204626771907074494, guid: 66124e9b75320b64c823ac3664bf1c1d, type: 3}
 --- !u!1 &477894583
 GameObject:
   m_ObjectHideFlags: 0
