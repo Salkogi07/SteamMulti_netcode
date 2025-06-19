@@ -359,6 +359,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4417fd744927ab648a5428ba078b82d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  maxPlayers: 4
 --- !u!1 &229136790
 GameObject:
   m_ObjectHideFlags: 0
@@ -3052,9 +3053,7 @@ MonoBehaviour:
   mainMenu: {fileID: 450324837}
   lobbyListMenu: {fileID: 1389304533}
   lobbyEntryPrefab: {fileID: 2078156573969800156, guid: 80c925c195fa5e947a20cb8f2531f16a, type: 3}
-  scrollViewContent: {fileID: 772335506}
-  friendsOnlyButton: {fileID: 1597446348}
-  publicButton: {fileID: 1060042792}
+  scrollViewContent: {fileID: 456472910}
   backButton: {fileID: 662813904}
 --- !u!1 &1544321075
 GameObject:
