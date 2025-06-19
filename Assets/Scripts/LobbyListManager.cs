@@ -18,7 +18,7 @@ public class LobbyListManager : MonoBehaviour
     
     [Header("UI Elements")]
     [SerializeField] private GameObject lobbyEntryPrefab;
-    [SerializeField] private Transform scrollViewContent; // [개선] GameObject 대신 Transform 사용
+    [SerializeField] private GameObject scrollViewContent;
     
     [Header("Buttons")]
     [SerializeField] private Button backButton;
@@ -71,7 +71,7 @@ public class LobbyListManager : MonoBehaviour
             if (string.IsNullOrEmpty(lobbyName))
                 continue;
             
-            GameObject createdLobbyItem = Instantiate(lobbyEntryPrefab, scrollViewContent);
+            GameObject createdLobbyItem = Instantiate(lobbyEntryPrefab, scrollViewContent.transform);
             LobbyEntryData lobbyData = createdLobbyItem.GetComponent<LobbyEntryData>();
 
             lobbyData.lobbySteamID = lobby.Id;

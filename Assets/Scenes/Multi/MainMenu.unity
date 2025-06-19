@@ -3053,7 +3053,7 @@ MonoBehaviour:
   mainMenu: {fileID: 450324837}
   lobbyListMenu: {fileID: 1389304533}
   lobbyEntryPrefab: {fileID: 2078156573969800156, guid: 80c925c195fa5e947a20cb8f2531f16a, type: 3}
-  scrollViewContent: {fileID: 456472910}
+  scrollViewContent: {fileID: 772335506}
   backButton: {fileID: 662813904}
 --- !u!1 &1544321075
 GameObject:
