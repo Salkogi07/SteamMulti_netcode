@@ -18,12 +18,10 @@ public class ChatManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI messageTemplate;
     [SerializeField] private GameObject messageContainer;
     [SerializeField] private ScrollRect chatScrollRect;
-
-    // --- 추가된 부분 시작 ---
+    
     [Header("Chat Settings")]
     [SerializeField] private UnityEngine.Color playerMessageColor = UnityEngine.Color.white;
     [SerializeField] private UnityEngine.Color systemMessageColor = UnityEngine.Color.yellow; // 시스템 메시지 색상 (예: 노란색)
-    // --- 추가된 부분 끝 ---
 
     #region Unity Lifecycle
     
@@ -35,7 +33,6 @@ public class ChatManager : MonoBehaviour
         // SteamManager가 준비되었고, 로비에 입장한 상태라면 환영 메시지를 표시합니다.
         if (SteamManager.Instance != null && SteamManager.Instance.CurrentLobby.HasValue)
         {
-            // --- 수정된 부분 ---
             AddMessageToBox("You entered the lobby!", systemMessageColor);
         }
     }
@@ -70,8 +67,7 @@ public class ChatManager : MonoBehaviour
     #endregion
 
     #region Steam Callbacks
-
-    // --- 수정된 부분 ---
+    
     private void OnLobbyMemberLeave(Lobby lobby, Friend friend) => AddMessageToBox($"{friend.Name} left the lobby.", systemMessageColor);
     private void OnLobbyMemberJoined(Lobby lobby, Friend friend) => AddMessageToBox($"{friend.Name} joined the lobby.", systemMessageColor);
     private void OnChatMessageReceived(Lobby lobby, Friend friend, string msg) => AddMessageToBox($"{friend.Name}: {msg}", playerMessageColor);
@@ -90,16 +86,14 @@ public class ChatManager : MonoBehaviour
     /// </summary>
     /// <param name="msg">표시할 메시지 문자열</param>
     /// <param name="color">메시지 텍스트 색상</param> // --- 파라미터 추가 ---
-    private void AddMessageToBox(string msg, UnityEngine.Color color) // --- 시그니처 수정 ---
+    private void AddMessageToBox(string msg, UnityEngine.Color color)
     {
         // 템플릿을 복제하여 새 메시지 오브젝트 생성
         GameObject messageObject = Instantiate(messageTemplate.gameObject, messageContainer.transform);
         
-        // --- 수정된 부분 시작 ---
         var messageTextComponent = messageObject.GetComponent<TextMeshProUGUI>();
         messageTextComponent.text = msg;
         messageTextComponent.color = color; // 전달받은 색상으로 설정
-        // --- 수정된 부분 끝 ---
 
         // 메시지 추가 후 스크롤을 맨 아래로 내림
         StartCoroutine(ScrollToBottomCoroutine());

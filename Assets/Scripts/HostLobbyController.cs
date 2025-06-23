@@ -51,7 +51,6 @@ public class HostLobbyController : MonoBehaviour
             return;
         }
         
-        // [개선] 토글 상태에 따라 로비 타입을 결정합니다.
         LobbyType lobbyType = friendsOnlyToggle.isOn ? LobbyType.FriendsOnly : LobbyType.Public;
         
         SteamManager.Instance.HostLobby(lobbyType, lobbyNameInput.text);

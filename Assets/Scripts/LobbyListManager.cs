@@ -35,14 +35,27 @@ public class LobbyListManager : MonoBehaviour
     {
         backButton.onClick.AddListener(OnClick_Back);
     }
-
+    
+    #region OnClick_Event_Function
     public void OnClick_GetFriendLobbies()
     {
         ShowLobbyListMenu();
         SteamManager.Instance.GetFriendLobbies();
     }
     
+    public void OnClick_UpdateFriendLobbies()
+    {
+        ShowLobbyListMenu();
+        SteamManager.Instance.GetFriendLobbies();
+    }
+    
     public void OnClick_GetPublicLobbies()
+    {
+        ShowLobbyListMenu();
+        SteamManager.Instance.GetPublicLobbies();
+    }
+    
+    public void OnClick_UpdatePublicLobbies()
     {
         ShowLobbyListMenu();
         SteamManager.Instance.GetPublicLobbies();
@@ -54,6 +67,7 @@ public class LobbyListManager : MonoBehaviour
         mainMenu.SetActive(true);
         DestroyLobbyListItems();
     }
+    #endregion
 
     /// <summary>
     /// 로비 목록을 받아와 UI에 표시합니다.

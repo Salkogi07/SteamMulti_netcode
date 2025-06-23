@@ -67,13 +67,13 @@ public class LobbyController : MonoBehaviour
     /// </summary>
     public void OnClick_LeaveLobby()
     {
-        // [개선] SteamManager와 CurrentLobby가 유효한지 안전하게 확인
+        // SteamManager와 CurrentLobby가 유효한지 안전하게 확인
         if (SteamManager.Instance != null && SteamManager.Instance.CurrentLobby.HasValue)
         {
             var lobby = SteamManager.Instance.CurrentLobby.Value;
             bool isOwner = lobby.Owner.Id == SteamClient.SteamId;
 
-            // [수정] 방장이 나가면 로비를 파괴하고, 일반 멤버는 그냥 나갑니다.
+            // 방장이 나가면 로비를 파괴하고, 일반 멤버는 그냥 나갑니다.
             if (isOwner)
             {
                 Debug.Log("방장이 로비 파괴를 시도합니다.");
@@ -93,7 +93,7 @@ public class LobbyController : MonoBehaviour
     public void OnClick_ReadyPlayer()
     {
         isReady = !isReady;
-        // [개선] 플레이어의 'ready' 상태를 Steam 로비 멤버 데이터에 저장합니다.
+        // 플레이어의 'ready' 상태를 Steam 로비 멤버 데이터에 저장합니다.
         SteamManager.Instance.SetPlayerData("ready", isReady.ToString().ToLower());
         UpdateReadyButtonText();
     }
@@ -116,7 +116,7 @@ public class LobbyController : MonoBehaviour
         
         bool isOwner = lobby.Value.Owner.Id == SteamClient.SteamId;
         
-        // [개선] 시작 버튼은 방장에게만 보입니다.
+        // 시작 버튼은 방장에게만 보입니다.
         if(startGameButton != null)
         {
             startGameButton.gameObject.SetActive(isOwner);
@@ -130,7 +130,7 @@ public class LobbyController : MonoBehaviour
         // 모든 멤버가 준비되었는지 확인
         bool allReady = lobby.Value.Members.All(member => lobby.Value.GetMemberData(member, "ready") == "true");
 
-        // [개선] 모든 멤버가 준비되었을 때만 시작 버튼을 활성화(interactable) 합니다.
+        // 모든 멤버가 준비되었을 때만 시작 버튼을 활성화(interactable) 합니다.
         if(startGameButton != null)
         {
             startGameButton.interactable = allReady;
