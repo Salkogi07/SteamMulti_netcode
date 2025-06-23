@@ -53,6 +53,7 @@ public class SteamManager : MonoBehaviour
         SteamMatchmaking.OnLobbyMemberJoined += OnLobbyMemberJoined;
         SteamMatchmaking.OnLobbyMemberLeave += OnLobbyMemberLeave;
         SteamMatchmaking.OnLobbyDataChanged += OnLobbyDataChanged;
+        SteamMatchmaking.OnLobbyMemberDisconnected += OnLobbyMemberDisconnected;
     }
 
     private void OnDisable()
@@ -63,6 +64,7 @@ public class SteamManager : MonoBehaviour
         SteamMatchmaking.OnLobbyMemberJoined -= OnLobbyMemberJoined;
         SteamMatchmaking.OnLobbyMemberLeave -= OnLobbyMemberLeave;
         SteamMatchmaking.OnLobbyDataChanged -= OnLobbyDataChanged;
+        SteamMatchmaking.OnLobbyMemberDisconnected -= OnLobbyMemberDisconnected;
     }
     
     #endregion
@@ -266,6 +268,23 @@ public class SteamManager : MonoBehaviour
         if (friend.Id == lobby.Owner.Id && lobby.GetData("closing") != "true")
         {
             Debug.Log("Host has left unexpectedly. Leaving lobby.");
+            LeaveLobby();
+            return;
+        }
+
+        if (lobby.GetData("closing") != "true")
+        {
+            LobbyController.Instance?.UpdatePlayerList();
+        }
+    }
+    
+    private void OnLobbyMemberDisconnected(Lobby lobby, Friend friend)
+    {
+        Debug.Log($"{friend.Name} has disconnected from the lobby due to a network issue.");
+
+        if (friend.Id == lobby.Owner.Id && lobby.GetData("closing") != "true")
+        {
+            Debug.Log("The host has disconnected unexpectedly. Leaving lobby.");
             LeaveLobby();
             return;
         }
