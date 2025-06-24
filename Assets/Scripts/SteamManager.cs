@@ -218,6 +218,26 @@ public class SteamManager : MonoBehaviour
     #endregion
     
     #region Steam Callbacks
+    
+    private void OnApplicationQuit()
+    {
+        Debug.Log("OnApplicationQuit 호출 — 로비에서 나갑니다.");
+        
+        var lobby = CurrentLobby.Value;
+        bool isOwner = lobby.Owner.Id == SteamClient.SteamId;
+
+        // 방장이 나가면 로비를 파괴하고, 일반 멤버는 그냥 나갑니다.
+        if (isOwner)
+        {
+            Debug.Log("방장이 로비 파괴를 시도합니다.");
+            DestroyLobby();
+        }
+        else
+        {
+            Debug.Log("일반 멤버가 로비를 나갑니다.");
+            LeaveLobby();
+        }
+    }
 
     private void OnLobbyCreated(Result result, Lobby lobby)
     {
