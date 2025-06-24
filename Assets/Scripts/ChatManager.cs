@@ -1,6 +1,4 @@
 // --- START OF FILE ChatManager.cs ---
-
-using System;
 using Steamworks;
 using Steamworks.Data;
 using TMPro;
@@ -8,6 +6,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using System.Collections;
+
 
 /// <summary>
 /// 로비 내 채팅 기능을 관리하는 클래스입니다.
@@ -19,6 +18,10 @@ public class ChatManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI messageTemplate;
     [SerializeField] private GameObject messageContainer;
     [SerializeField] private ScrollRect chatScrollRect;
+    
+    [Header("Chat Settings")]
+    [SerializeField] private UnityEngine.Color playerMessageColor = UnityEngine.Color.white;
+    [SerializeField] private UnityEngine.Color systemMessageColor = UnityEngine.Color.yellow; // 시스템 메시지 색상 (예: 노란색)
 
     #region Unity Lifecycle
     
@@ -30,7 +33,7 @@ public class ChatManager : MonoBehaviour
         // SteamManager가 준비되었고, 로비에 입장한 상태라면 환영 메시지를 표시합니다.
         if (SteamManager.Instance != null && SteamManager.Instance.CurrentLobby.HasValue)
         {
-            AddMessageToBox("You entered the lobby!");
+            AddMessageToBox("You entered the lobby!", systemMessageColor);
         }
     }
 
@@ -64,14 +67,15 @@ public class ChatManager : MonoBehaviour
     #endregion
 
     #region Steam Callbacks
-
-    private void OnLobbyMemberLeave(Lobby lobby, Friend friend) => AddMessageToBox($"{friend.Name} left the lobby.");
-    private void OnLobbyMemberJoined(Lobby lobby, Friend friend) => AddMessageToBox($"{friend.Name} joined the lobby.");
+    
+    private void OnLobbyMemberLeave(Lobby lobby, Friend friend) => AddMessageToBox($"{friend.Name} left the lobby.", systemMessageColor);
+    private void OnLobbyMemberJoined(Lobby lobby, Friend friend) => AddMessageToBox($"{friend.Name} joined the lobby.", systemMessageColor);
+    private void OnChatMessageReceived(Lobby lobby, Friend friend, string msg) => AddMessageToBox($"{friend.Name}: {msg}", playerMessageColor);
+    
     private void OnLobbyEntered(Lobby lobby)
     {
         // Start()에서 이미 입장 메시지를 처리하므로 여기서는 특별한 동작 없음
     }
-    private void OnChatMessageReceived(Lobby lobby, Friend friend, string msg) => AddMessageToBox($"{friend.Name}: {msg}");
 
     #endregion
 
@@ -81,11 +85,15 @@ public class ChatManager : MonoBehaviour
     /// 채팅 UI에 새로운 메시지를 추가합니다.
     /// </summary>
     /// <param name="msg">표시할 메시지 문자열</param>
-    private void AddMessageToBox(string msg)
+    /// <param name="color">메시지 텍스트 색상</param> // --- 파라미터 추가 ---
+    private void AddMessageToBox(string msg, UnityEngine.Color color)
     {
         // 템플릿을 복제하여 새 메시지 오브젝트 생성
         GameObject messageObject = Instantiate(messageTemplate.gameObject, messageContainer.transform);
-        messageObject.GetComponent<TextMeshProUGUI>().text = msg;
+        
+        var messageTextComponent = messageObject.GetComponent<TextMeshProUGUI>();
+        messageTextComponent.text = msg;
+        messageTextComponent.color = color; // 전달받은 색상으로 설정
 
         // 메시지 추가 후 스크롤을 맨 아래로 내림
         StartCoroutine(ScrollToBottomCoroutine());

@@ -50,7 +50,7 @@ public class PlayerListItem : MonoBehaviour
     {
         if (PlayerSteamID.IsValid)
         {
-            // [개선] SteamFriends.GetLargeAvatarAsync 사용하여 비동기 처리
+            // SteamFriends.GetLargeAvatarAsync 사용하여 비동기 처리
             var avatarOpt = await SteamFriends.GetLargeAvatarAsync(PlayerSteamID);
 
             if (avatarOpt.HasValue)

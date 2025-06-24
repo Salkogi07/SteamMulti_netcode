@@ -18,7 +18,7 @@ public class LobbyListManager : MonoBehaviour
     
     [Header("UI Elements")]
     [SerializeField] private GameObject lobbyEntryPrefab;
-    [SerializeField] private Transform scrollViewContent; // [개선] GameObject 대신 Transform 사용
+    [SerializeField] private GameObject scrollViewContent;
     
     [Header("Buttons")]
     [SerializeField] private Button backButton;
@@ -35,14 +35,27 @@ public class LobbyListManager : MonoBehaviour
     {
         backButton.onClick.AddListener(OnClick_Back);
     }
-
+    
+    #region OnClick_Event_Function
     public void OnClick_GetFriendLobbies()
     {
         ShowLobbyListMenu();
         SteamManager.Instance.GetFriendLobbies();
     }
     
+    public void OnClick_UpdateFriendLobbies()
+    {
+        ShowLobbyListMenu();
+        SteamManager.Instance.GetFriendLobbies();
+    }
+    
     public void OnClick_GetPublicLobbies()
+    {
+        ShowLobbyListMenu();
+        SteamManager.Instance.GetPublicLobbies();
+    }
+    
+    public void OnClick_UpdatePublicLobbies()
     {
         ShowLobbyListMenu();
         SteamManager.Instance.GetPublicLobbies();
@@ -54,6 +67,7 @@ public class LobbyListManager : MonoBehaviour
         mainMenu.SetActive(true);
         DestroyLobbyListItems();
     }
+    #endregion
 
     /// <summary>
     /// 로비 목록을 받아와 UI에 표시합니다.
@@ -71,7 +85,7 @@ public class LobbyListManager : MonoBehaviour
             if (string.IsNullOrEmpty(lobbyName))
                 continue;
             
-            GameObject createdLobbyItem = Instantiate(lobbyEntryPrefab, scrollViewContent);
+            GameObject createdLobbyItem = Instantiate(lobbyEntryPrefab, scrollViewContent.transform);
             LobbyEntryData lobbyData = createdLobbyItem.GetComponent<LobbyEntryData>();
 
             lobbyData.lobbySteamID = lobby.Id;

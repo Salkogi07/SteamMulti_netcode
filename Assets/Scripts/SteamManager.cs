@@ -53,6 +53,7 @@ public class SteamManager : MonoBehaviour
         SteamMatchmaking.OnLobbyMemberJoined += OnLobbyMemberJoined;
         SteamMatchmaking.OnLobbyMemberLeave += OnLobbyMemberLeave;
         SteamMatchmaking.OnLobbyDataChanged += OnLobbyDataChanged;
+        SteamMatchmaking.OnLobbyMemberDisconnected += OnLobbyMemberDisconnected;
     }
 
     private void OnDisable()
@@ -63,6 +64,7 @@ public class SteamManager : MonoBehaviour
         SteamMatchmaking.OnLobbyMemberJoined -= OnLobbyMemberJoined;
         SteamMatchmaking.OnLobbyMemberLeave -= OnLobbyMemberLeave;
         SteamMatchmaking.OnLobbyDataChanged -= OnLobbyDataChanged;
+        SteamMatchmaking.OnLobbyMemberDisconnected -= OnLobbyMemberDisconnected;
     }
     
     #endregion
@@ -88,7 +90,8 @@ public class SteamManager : MonoBehaviour
             Lobby lobby = createLobbyOutput.Value;
             lobby.SetData("name", lobbyName);
             
-            lobby.SetData("started", "false"); 
+            lobby.SetData("started", "false");
+            lobby.SetData("closing", "false"); 
 
             switch (lobbyType)
             {
@@ -121,19 +124,12 @@ public class SteamManager : MonoBehaviour
         if (CurrentLobby.HasValue && CurrentLobby.Value.Owner.Id == SteamClient.SteamId)
         {
             Debug.Log("Host is destroying the lobby.");
-            CurrentLobby.Value.SetData("closing", "true"); 
-            
-            StartCoroutine(LeaveAndShutdown(CurrentLobby.Value));
+            CurrentLobby.Value.SetData("closing", "true");
+            CurrentLobby.Value.Leave();
+            CurrentLobby = null;
+            if(NetworkManager.Singleton != null && NetworkManager.Singleton.IsHost) NetworkManager.Singleton.Shutdown();
+            TransitionToMainMenu();
         }
-    }
-
-    private IEnumerator LeaveAndShutdown(Lobby lobby)
-    {
-        yield return new WaitForSeconds(0.2f);
-        lobby.Leave();
-        CurrentLobby = null;
-        if(NetworkManager.Singleton != null && NetworkManager.Singleton.IsHost) NetworkManager.Singleton.Shutdown();
-        TransitionToMainMenu();
     }
 
     /// <summary>
@@ -175,7 +171,6 @@ public class SteamManager : MonoBehaviour
         if (LobbyListManager.instance == null) return;
         LobbyListManager.instance.DestroyLobbyListItems();
         
-        // [수정] WithData -> WithKeyValue 로 변경
         var lobbies = await SteamMatchmaking.LobbyList
             .WithSlotsAvailable(1)
             .WithKeyValue("started", "false")
@@ -223,6 +218,26 @@ public class SteamManager : MonoBehaviour
     #endregion
     
     #region Steam Callbacks
+    
+    private void OnApplicationQuit()
+    {
+        Debug.Log("OnApplicationQuit 호출 — 로비에서 나갑니다.");
+        
+        var lobby = CurrentLobby.Value;
+        bool isOwner = lobby.Owner.Id == SteamClient.SteamId;
+
+        // 방장이 나가면 로비를 파괴하고, 일반 멤버는 그냥 나갑니다.
+        if (isOwner)
+        {
+            Debug.Log("방장이 로비 파괴를 시도합니다.");
+            DestroyLobby();
+        }
+        else
+        {
+            Debug.Log("일반 멤버가 로비를 나갑니다.");
+            LeaveLobby();
+        }
+    }
 
     private void OnLobbyCreated(Result result, Lobby lobby)
     {
@@ -262,15 +277,20 @@ public class SteamManager : MonoBehaviour
     private void OnLobbyMemberLeave(Lobby lobby, Friend friend)
     {
         Debug.Log($"{friend.Name} left the lobby.");
-        
-        if (friend.Id == lobby.Owner.Id && lobby.GetData("closing") != "true")
-        {
-            Debug.Log("Host has left unexpectedly. Leaving lobby.");
-            LeaveLobby();
-            return;
-        }
 
-        if (lobby.GetData("closing") != "true")
+        bool isLobbyClosed = lobby.GetData("closing") != "true";
+        if (isLobbyClosed)
+        {
+            LobbyController.Instance?.UpdatePlayerList();
+        }
+    }
+    
+    private void OnLobbyMemberDisconnected(Lobby lobby, Friend friend)
+    {
+        Debug.Log($"{friend.Name} has disconnected from the lobby due to a network issue.");
+        
+        bool isLobbyClosed = lobby.GetData("closing") != "true";
+        if (isLobbyClosed)
         {
             LobbyController.Instance?.UpdatePlayerList();
         }
@@ -280,16 +300,13 @@ public class SteamManager : MonoBehaviour
     {
         if (lobby.GetData("closing") == "true")
         {
-            bool isOwner = CurrentLobby.HasValue && CurrentLobby.Value.Owner.Id == SteamClient.SteamId;
-            if (CurrentLobby.HasValue && !isOwner)
-            {
-                Debug.Log("Host has closed the lobby. Leaving.");
-                LeaveLobby(); 
-            }
+            Debug.Log("Host has closed the lobby. Leaving.");
+            LeaveLobby(); 
             return;
         }
-        
-        if (LobbyController.Instance != null && CurrentLobby.HasValue && CurrentLobby.Value.Id == lobby.Id)
+
+        bool isCheckLobby = CurrentLobby.HasValue && CurrentLobby.Value.Id == lobby.Id;
+        if (LobbyController.Instance != null && isCheckLobby)
         {
             LobbyController.Instance.UpdateLobbyName();
             LobbyController.Instance.UpdatePlayerList();
